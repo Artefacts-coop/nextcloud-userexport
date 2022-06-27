@@ -467,7 +467,7 @@ function select_data_single_user(
       $backend = $data['ocs']['data']['backend'];
 
       $item_data = $item !== 'percentage_used'
-          ? $data['ocs']['data'][$item]
+          ? (isset($data['ocs']['data'][$item]) ? $data['ocs']['data'][$item] : 'N/A' )
           : ((in_array($quota, [-3, 0, 'none']) || $backend === 'Guests')
               ? 'N/A'
               : round($used / $quota * 100));
@@ -505,7 +505,7 @@ function select_data_single_user(
             $selected_data[] = 'N/A';
             break;
           }
-          $item_data = $data['ocs']['data']['quota'][$item];
+          $item_data = isset($data['ocs']['data']['quota'][$item]) ? $data['ocs']['data']['quota'][$item] : null ;
           $selected_data[] = in_array($item_data, [-3, 'none'], true)
               ? '∞'
               : ($format != 'csv'
@@ -851,11 +851,14 @@ function print_status_overview($scope = "quick") {
   */
 function build_csv_file($list, $headers = 'default') {
 
-  if(!$_SESSION['temp_folder'])
-    $_SESSION['temp_folder'] = 'export_temp-'.bin2hex(random_bytes(16));
+  if( ! isset($_SESSION['temp_folder']) || (! $_SESSION['temp_folder']))
+    $_SESSION['temp_folder'] = sys_get_temp_dir().DIRECTORY_SEPARATOR.'export_temp-'.bin2hex(random_bytes(16));
+
+    if( ! file_exists($_SESSION['temp_folder']))
+      mkdir( $_SESSION['temp_folder'], 0755, true);
 
   // Delete temporary folder and contents
-  delete_temp_folder();
+  //delete_temp_folder();
 
   // Create headers from session variable 'data_choices' if not supplied
   if($headers == 'default')
@@ -865,14 +868,13 @@ function build_csv_file($list, $headers = 'default') {
   $csv_filename = bin2hex(random_bytes(8)).'.csv';
 
   // Check if temporary folder already exists, else make directory
-  if(!file_exists($_SESSION['temp_folder']))
-    mkdir($_SESSION['temp_folder'], 0755, true);
+  $tmp_folder = $_SESSION['temp_folder'] ;
 
   // Create/open file with write access and return file handle
-  $csv_file = fopen($_SESSION['temp_folder'].'/'.$csv_filename, "w");
+  $csv_file = fopen( $tmp_folder.DIRECTORY_SEPARATOR.$csv_filename, "w" );
 
   // Set file permissions (rw-r-----)
-  chmod($_SESSION['temp_folder'].'/'.$csv_filename, 0640);
+  chmod($tmp_folder.DIRECTORY_SEPARATOR.$csv_filename, 0640);
 
   // Write selected headers as first line to file
   if($headers != 'no_headers')
@@ -902,11 +904,14 @@ function build_csv_file($list, $headers = 'default') {
   * OPTIONAL                    DEFAULT: '.'
   *
   */
-function download_file($filename, $mime_type = 'text/csv',
+function download_file($filename, $mime_type,
     $filename_download = 'download', $folder = '.') {
 
   // make sure file is deleted even if user cancels download
   ignore_user_abort(true);
+
+  if( ! $mime_type )
+    $mime_type = 'text/csv';
 
   header('Content-Type: '.$mime_type);
   header("Content-Transfer-Encoding: Binary");
@@ -1045,6 +1050,7 @@ function build_table_user_data($user_data) {
 
   // Define HTML table and set header cell content
   $table_user_data_headers = "<table class='list'><tr>";
+  $table_user_data = '' ;
 
   foreach($data_choices as $key => $choice) {
     $sort = (in_array($choice, ['quota', 'used', 'free']))
@@ -1082,6 +1088,8 @@ function build_table_user_data($user_data) {
   for($row = 0; $row < sizeof($user_data); $row++) {
     $table_user_data .= "<tr>";
     for($col = 0; $col < sizeof($user_data[$row]); $col++) {
+
+      $pos_rel = '' ;
       $selected_data = $user_data[$row][$col];
 
       $graphic_perc = null;
@@ -1450,6 +1458,7 @@ function build_csv_line($array = null, $return_key = false, $delimiter = ',',
 
   $array = $array ?? $_SESSION['data_choices'];
 
+  $csv_line = '' ;
   $i = 0;
   foreach($array as $key => $item) {
 
@@ -1567,7 +1576,7 @@ function check_and_set_filter($filter) {
 
   switch($filter) {
     case 'group':
-      if($filter_group && !$_SESSION['group_filter_checked_by_config']) {
+      if( (isset($filter_group) && $filter_group) && !$_SESSION['group_filter_checked_by_config']) {
         $_SESSION['group_filter_checked_by_config'] = true;
         return " checked";
       }

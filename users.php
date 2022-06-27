@@ -149,10 +149,10 @@
     <br><br><br>
     <u><?php echo L10N_COLUMN_HEADERS ?></u>
     <input type='radio' name='csv_headers' value='default'
-      <?php if ($csv_headers == 'true' || $csv_headers === null)
+      <?php if (isset($csv_headers) && ( $csv_headers === null || $csv_headers == 'true' ) )
         echo 'checked=\"checked\"'; ?>> <?php echo L10N_YES ?>
     <input type='radio' name='csv_headers' value='no_headers'
-      <?php if ($csv_headers == 'false')
+      <?php if (isset($csv_headers) && $csv_headers == 'false')
         echo 'checked=\"checked\"'; ?>> <?php echo L10N_NO ?>
     <br><br>
     <button id='button-download' type='submit' name='submit'

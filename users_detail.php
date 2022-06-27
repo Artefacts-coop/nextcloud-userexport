@@ -40,14 +40,14 @@
   if($display_or_download == 'download') {
 
     // Set filename or create one depending on GET parameters
-    if($filename_download == null)
+    if( (! isset($filename_download)) || $filename_download == null)
       $filename_download = "nextcloud-userlist_".date('Y-m-d_Hi').".csv";
 
     // Create and populate CSV file with selected user data and set filename variable
     $filename = build_csv_file(select_data_all_users(
         $_SESSION['data_choices'], $userlist, 'csv'), $_POST['csv_headers']);
 
-    download_file($filename, $mime_type, $filename_download, $_SESSION['temp_folder']);
+    download_file( $filename, $mime_type=null, $filename_download, $_SESSION['temp_folder']);
     exit();
   }
 
